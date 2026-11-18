@@ -53,6 +53,8 @@ Plain JavaScript works the same way (no compile step). Path params, query, body 
 - **Middleware**: onion model, can replace the request, short-circuit, observe responses.
 - **Validation** is optional: anything with `parse()` (Zod and similar) or the Standard Schema interface. `typed<T>()` gives types with no runtime cost.
 - **Cancellation**: `signal` and `timeoutMs` per call or per registry.
+- **Retries (opt-in)**: `retries` registry option, or standalone `retryMiddleware`. Retry middleware runs outermost; user middleware re-runs on every attempt; the last attempt surfaces its error so `HttpError.status` stays accurate. No retries by default.
+- **Error bodies**: `responseFilter: { errorBody }` decodes error bodies into `HttpError.body` (`body` is excluded from `toJSON()`); a throwing filter is swallowed.
 - **Errors** have stable `code`s and never include tokens, headers, bodies or query strings.
 
 ## Options
@@ -63,6 +65,8 @@ createRegistry(tree, {
   headers, // object or (async) function; merged registry < endpoint < call
   fetch, // custom transport (tests, local dev, adapters)
   middleware: [], // first = outermost
+  retries, // max attempts (0 disables); maps to retryMiddleware({ maxAttempts })
+  responseFilter: { errorBody }, // decode error bodies into HttpError.body
   timeoutMs, // no default timeout
   credentials,
   redirect, // passed to Request
@@ -82,12 +86,12 @@ Per call: `{ params, query, body, headers, signal, timeoutMs, parseAs }`. `parse
 | `ResponseValidationError`          | `RESPONSE_VALIDATION` |
 | `ResponseParseError`               | `RESPONSE_PARSE`      |
 | `NetworkError`                     | `NETWORK_ERROR`       |
-| `HttpError` (`status`, `response`) | `HTTP_ERROR`          |
+| `HttpError` (`status`, `response`, `body?`) | `HTTP_ERROR`          |
 | `TimeoutError`                     | `TIMEOUT`             |
 | `AbortedError`                     | `ABORTED`             |
 | `ConfigurationError`               | `CONFIGURATION_ERROR` |
 
-Check with `error.code` or `instanceof`, never by parsing messages.
+`body` is populated only when `responseFilter.errorBody` is set; it is excluded from `toJSON()`. Check with `error.code` or `instanceof`, never by parsing messages.
 
 ## Middleware
 
@@ -104,10 +108,15 @@ Requests reaching middleware include real headers (e.g. `Authorization`). Use `r
 
 ## Security notes
 
-- No automatic retries (so nothing non-idempotent is ever repeated).
+- No retries by default; opt in with `retries` / `retryMiddleware`, and only retry idempotent calls.
 - A dynamic `baseUrl` built from user input is an SSRF risk that the library cannot remove.
 - Schema validation does not replace server-side validation.
 - `HttpError.response` is returned unread; read or cancel its body to free the connection.
+
+## Examples
+
+- `examples/typescript/retry-demo.ts` — `retries` registry option and standalone `retryMiddleware` (`node --import tsx examples/typescript/retry-demo.ts`).
+- `examples/typescript/response-filter-demo.ts` — `responseFilter: { errorBody }` for structured `HttpError.body` (`node --import tsx examples/typescript/response-filter-demo.ts`).
 
 ## Development
 
@@ -121,7 +130,7 @@ Tests use an in-memory `fetch`, so no network or server is needed. Requires ambi
 
 ## Compatibility
 
-Pure Web Standard APIs; no `window`, `document` or `process` (enforced by a test). Proposed minimums: Node ≥ 18.17, Deno 2.x, Bun ≥ 1.1, evergreen browsers. Node is verified locally; Deno and Bun run in CI (`.github/workflows/ci.yml`).
+Pure Web Standard APIs; no `window`, `document` or `process` (enforced by a test). Proposed minimums: Node ≥ 18.17, Deno 2.x, Bun ≥ 1.1, evergreen browsers. Node is verified locally (`npm test`). Deno 2.x and Bun run in CI (`.github/workflows/ci.yml`) against the built `dist`; Deno also runs the TypeScript sources directly with `--sloppy-imports` (verified locally).
 
 
 ## License

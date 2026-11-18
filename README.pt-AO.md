@@ -1,3 +1,5 @@
+🌍 Idiomas: [Português (AO)](README.pt-AO.md) | [English](README.md)
+
 # Endpoint Registry
 
 > Define uma vez. Regista centralmente. Consome em qualquer lado.

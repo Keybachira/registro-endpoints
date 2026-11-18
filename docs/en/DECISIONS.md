@@ -16,6 +16,8 @@ Status: proposed for 0.1.0, implemented and covered by tests. Anything marked **
 | D10 | Minimum runtimes | **Pending.** Proposal: Node ≥ 18.17, Deno 2.x, Bun ≥ 1.1, evergreen browsers. CI matrix in `.github/workflows/ci.yml`; only Node is verified locally so far. | runtime |
 | D11 | Package name / targets | `endpoint-registry` was **not found on the npm registry** on 2026-11-18 (HTTP 404). Re-check right before publishing. Publish target (npm, JSR or both): **pending**. | n/a |
 | D12 | License | MIT file included. **Pending** your confirmation. | n/a |
+| D13 | Retries | **Opt-in.** `retries: N` (registry option) = `retryMiddleware({ maxAttempts: N })`, placed outermost. `retryMiddleware` standalone accepts `maxAttempts`, `delay`, `backoff` (`"fixed"` \| `"exponential"`), `retryableStatuses`, `shouldRetry(error, response?)`, `onRetry(attempt, error, response?)`. Retries responses in `retryableStatuses` and network errors; user middleware re-runs every attempt; the last attempt surfaces its error/response so `HttpError.status` stays accurate. `retries: 0` disables retries; invalid values throw `ConfigurationError`. Only idempotent calls should be retried. | registry-retries option, retryMiddleware |
+| D14 | Response filter / error bodies | `responseFilter: { errorBody(response) }` decodes error bodies into `HttpError.body`. `body` is excluded from `toJSON()`; a throwing filter is swallowed (error still thrown, without `body`). Without a filter, `body` is `undefined`. | responseFilter |
 
 ## Deviations from the draft (allowed by the spec's "names may be adjusted")
 
@@ -26,9 +28,9 @@ Status: proposed for 0.1.0, implemented and covered by tests. Anything marked **
 
 ## Notes on the draft specification
 
-1. §12.3 forbids automatic retries for non-idempotent calls, but no retry feature exists. 0.1.0 has **no retries at all**; add them later as middleware.
+1. §12.3 forbids automatic retries for non-idempotent calls. Retries exist but are **opt-in** (`retries` option / `retryMiddleware`); the library never retries by default, and only idempotent calls should be retried.
 2. §3.4 bans `window`/`document`/`process`. A test now enforces it, and also bans `any` in `src` and runtime dependencies.
 3. Path traversal: `encodeURIComponent` does not encode `.`, so `:id = ".."` would be normalized by URL parsing. Rejected explicitly (consider adding this to §7/§12).
 4. §12.7 SSRF: `baseUrl` is validated, but a dynamic `baseUrl` from user input is still the consumer's risk. Not mitigated by the library.
-5. Error bodies: `HttpError.response` is returned unread so callers can inspect it. If you never read or cancel it, some runtimes keep the connection until GC.
+5. Error bodies: `HttpError.response` is returned unread so callers can inspect it. If you never read or cancel it, some runtimes keep the connection until GC. `responseFilter.errorBody` can decode the body once into `HttpError.body` (excluded from `toJSON()`); consuming `response` afterwards remains the caller's responsibility.
 6. Not covered yet: streaming request bodies (`duplex`), retries, caching, OpenAPI generation (out of scope per §1.3).
