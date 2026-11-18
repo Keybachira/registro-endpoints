@@ -4,6 +4,8 @@ import { execute } from "../executor/index.js";
 import type { LooseInput, RegistryContext } from "../executor/index.js";
 import type { Middleware } from "../middleware/index.js";
 import type { FetchLike } from "../transport/index.js";
+import type { ResponseFilter } from "../transport/responseFilter.js";
+import { retryMiddleware } from "../middleware/retry.js";
 import type { HeadersSource, Registry, RegistryTree } from "../types/index.js";
 
 export interface RegistryOptions {
@@ -19,6 +21,9 @@ export interface RegistryOptions {
   timeoutMs?: number;
   credentials?: RequestCredentials;
   redirect?: RequestRedirect;
+  /** Default max retry attempts (`0` disables). Implemented as the outermost middleware. */
+  retries?: number;
+  responseFilter?: ResponseFilter;
 }
 
 const MAX_DEPTH = 32;
@@ -79,13 +84,20 @@ export function createRegistry<const T extends RegistryTree>(
 ): Registry<T> {
   if (!isPlainTree(tree))
     throw new RegistryError("createRegistry() expects an object of endpoints");
-  const middleware = options.middleware ?? [];
-  if (
-    !Array.isArray(middleware) ||
-    middleware.some((m) => typeof m !== "function")
-  ) {
+  const middleware: Middleware[] = [];
+  if (options.retries !== undefined) {
+    if (!Number.isInteger(options.retries) || options.retries < 0) {
+      throw new ConfigurationError("retries must be a non-negative integer");
+    }
+    if (options.retries > 0) {
+      middleware.push(retryMiddleware({ maxAttempts: options.retries }));
+    }
+  }
+  const userMiddleware = options.middleware ?? [];
+  if (!Array.isArray(userMiddleware) || userMiddleware.some((m) => typeof m !== "function")) {
     throw new ConfigurationError("middleware must be an array of functions");
   }
+  middleware.push(...userMiddleware);
   const { middleware: _ignored, ...rest } = options;
   void _ignored;
   const ctx: RegistryContext = Object.freeze({
