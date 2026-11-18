@@ -1,0 +1,49 @@
+{
+  "name": "endpoint-registry",
+  "version": "0.1.0",
+  "description": "Define once. Register centrally. Consume anywhere. Declarative, typed HTTP endpoint registry for JavaScript and TypeScript.",
+  "license": "MIT",
+  "author": "Aquiles Bachira",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "README.pt-AO.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
+  "engines": {
+    "node": ">=18.17"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test:unit": "node --import tsx --test tests/unit/*.test.ts",
+    "test:types": "tsc -p tsconfig.test-types.json",
+    "test:runtime": "npm run build && node tests/runtime/smoke.mjs",
+    "test": "npm run typecheck && npm run test:types && npm run test:unit && npm run test:runtime"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  },
+  "keywords": [
+    "http",
+    "endpoint",
+    "registry",
+    "fetch",
+    "typescript",
+    "api-client",
+    "angola"
+  ]
+}
