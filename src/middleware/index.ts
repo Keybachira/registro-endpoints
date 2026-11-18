@@ -32,8 +32,9 @@ export function runMiddleware(
     const middleware = chain[index];
     if (!middleware) return terminal(request);
     let called = false;
+    let settled = false;
     const next: Next = (replacement) => {
-      if (called) {
+      if (called && !settled) {
         return Promise.reject(
           new ConfigurationError("Middleware called next() more than once", {
             endpoint: ctx.label,
@@ -41,7 +42,17 @@ export function runMiddleware(
         );
       }
       called = true;
-      return dispatch(index + 1, replacement ?? request);
+      settled = false;
+      const promise = dispatch(index + 1, replacement ?? request);
+      promise.then(
+        () => {
+          settled = true;
+        },
+        () => {
+          settled = true;
+        },
+      );
+      return promise;
     };
     try {
       return Promise.resolve(middleware({ ...ctx, request }, next));
