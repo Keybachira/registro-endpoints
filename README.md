@@ -1,3 +1,6 @@
+🌍 Idiomas: [English](README.md) | [Português (AO)](README.pt-AO.md)
+
+
 # Endpoint Registry
 
 > Define once. Register centrally. Consume anywhere.
@@ -120,7 +123,6 @@ Tests use an in-memory `fetch`, so no network or server is needed. Requires ambi
 
 Pure Web Standard APIs; no `window`, `document` or `process` (enforced by a test). Proposed minimums: Node ≥ 18.17, Deno 2.x, Bun ≥ 1.1, evergreen browsers. Node is verified locally; Deno and Bun run in CI (`.github/workflows/ci.yml`).
 
-🌍 Idiomas: [English](README.md) | [Português (AO)](README.pt-AO.md)
 
 ## License
 
