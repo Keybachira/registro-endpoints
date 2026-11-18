@@ -3,4 +3,3 @@
   "compilerOptions": { "noEmit": true, "rootDir": "." },
   "include": ["src", "tests/types"],
 }
-S
