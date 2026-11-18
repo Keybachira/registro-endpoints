@@ -130,10 +130,12 @@ export class HttpError extends EndpointRegistryError {
   readonly statusText: string;
   /** Origin + pathname only: no credentials, query string or hash. */
   readonly url: string;
+  /** Decoded error body provided by a response filter; never serialized by `toJSON()`. */
+  readonly body?: unknown;
   /** The raw Response (body unread). Not serialized, not part of the message. */
   readonly response!: Response;
 
-  constructor(response: Response, context?: ErrorContext) {
+  constructor(response: Response, context?: ErrorContext, body?: unknown) {
     super(
       "HTTP_ERROR",
       `HTTP ${response.status}${response.statusText ? " " + response.statusText : ""}`,
@@ -147,6 +149,7 @@ export class HttpError extends EndpointRegistryError {
       value: response,
       enumerable: false,
     });
+    this.body = body;
   }
 
   override toJSON(): Record<string, unknown> {
