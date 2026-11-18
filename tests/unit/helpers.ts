@@ -7,13 +7,20 @@ export interface Recorded {
 
 /** In-memory transport: no network needed (local-dev fallback). */
 export function fakeFetch(
-  respond: (req: Request) => Response | Promise<Response>,
+  respond: Response[] | ((req: Request) => Response | Promise<Response>),
 ): { fetch: FetchLike; calls: Recorded[] } {
   const calls: Recorded[] = [];
+  const queue = Array.isArray(respond) ? [...respond] : null;
   const fetch: FetchLike = async (req) => {
     const clone = req.clone();
     calls.push({ request: req, body: req.body ? await clone.text() : null });
-    return respond(req);
+    const response = queue
+      ? queue.shift()
+      : await (respond as (req: Request) => Response | Promise<Response>)(req);
+    if (!response) {
+      throw new Error("fakeFetch: no more queued responses");
+    }
+    return response;
   };
   return { fetch, calls };
 }

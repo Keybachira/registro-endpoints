@@ -542,8 +542,15 @@ describe("middleware", () => {
         fetch,
         middleware: [
           async (_c, next) => {
-            await next();
-            return next();
+            const first = next(); // chama next, mas não aguarda: promise ainda pendente
+            let caught: unknown;
+            try {
+              await next(); // segunda chamada antes de first se assentar -> ConfigurationError
+            } catch (err) {
+              caught = err;
+            }
+            await first; // deixe a primeira tentativa concluir
+            throw caught; // propaga a ConfigurationError
           },
         ],
       },
