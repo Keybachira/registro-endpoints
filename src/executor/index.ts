@@ -12,6 +12,8 @@ import {
   TimeoutError,
 } from "../errors/index.js";
 import { runMiddleware } from "../middleware/index.js";
+import { applyResponseFilter } from "../transport/responseFilter.js";
+import type { ResponseFilter } from "../transport/responseFilter.js";
 import type { Middleware } from "../middleware/index.js";
 import { buildUrl, resolvePath } from "../resolver/index.js";
 import { locationOrigin, resolveTransport } from "../transport/index.js";
@@ -32,6 +34,7 @@ export interface RegistryContext {
   readonly headers?: HeadersSource;
   readonly fetch?: FetchLike;
   readonly middleware: readonly Middleware[];
+  readonly responseFilter?: ResponseFilter;
   readonly timeoutMs?: number;
   readonly credentials?: RequestCredentials;
   readonly redirect?: RequestRedirect;
@@ -284,7 +287,10 @@ export async function execute(
     );
 
     // 5. process response
-    if (!response.ok) throw new HttpError(response, errCtx);
+    if (!response.ok) {
+      const errorBody = await applyResponseFilter(ctx.responseFilter, response);
+      throw new HttpError(response, errCtx, errorBody);
+    }
     const parseAs = input.parseAs ?? "auto";
     if (parseAs === "response") return response;
 
