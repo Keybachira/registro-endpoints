@@ -16,6 +16,9 @@ export type {
   Next,
 } from "./middleware/index.js";
 export type { FetchLike } from "./transport/index.js";
+export { retryMiddleware } from "./middleware/retry.js";
+export type { RetryMiddlewareOptions } from "./middleware/retry.js";
+export type { ResponseFilter } from "./transport/responseFilter.js";
 export { typed } from "./validation/index.js";
 export type {
   AnySchema,
